@@ -1,5 +1,6 @@
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
+using System.Collections;
 using Microsoft.EntityFrameworkCore;
 
 namespace Biblioteca.Models
@@ -20,8 +21,11 @@ namespace Biblioteca.Models
             using(BibliotecaContext bc = new BibliotecaContext())
             {
                 Emprestimo emprestimo = bc.Emprestimos.Find(e.Id);
+                
+                /*Emprestimo emprestimo = bc.Emprestimo.Find(e.Id);
                 emprestimo.NomeUsuario = e.NomeUsuario;
                 emprestimo.Telefone = e.Telefone;
+                */
                 emprestimo.LivroId = e.LivroId;
                 emprestimo.DataEmprestimo = e.DataEmprestimo;
                 emprestimo.DataDevolucao = e.DataDevolucao;
@@ -30,18 +34,66 @@ namespace Biblioteca.Models
             }
         }
 
-        public ICollection<Emprestimo> ListarTodos(FiltrosEmprestimos filtro)
+        public ICollection<Emprestimo> ListarTodos(FiltrosEmprestimos filtro = null)
         {
+            
+
             using(BibliotecaContext bc = new BibliotecaContext())
             {
-                return bc.Emprestimos.Include(e => e.Livro).ToList();
-            }
-        }
 
+                 IQueryable<Emprestimo> query;
+                
+                if(filtro != null)
+                {
+                    //definindo dinamicamente a filtragem
+                    switch(filtro.TipoFiltro)
+                    {
+                        case "Usuario":
+                            query = bc.Emprestimos.Where(e => e.NomeUsuario.Contains(filtro.Filtro));
+                        break;
+
+                        case "Livro":
+                           //query = bc.Emprestimos.Where(e => e.Livro.Titulo.Contains(filtro.Filtro));
+
+                           List<Livro> LivrosFiltrados = bc.Livros.Where(l => l.Titulo.Contains(filtro.Filtro)).ToList();
+
+                           List<int>LivrosIds = new List<int>();
+                           for(int i = 0; i < LivrosFiltrados.Count; i++)
+                            {
+                               LivrosIds.Add(LivrosFiltrados[i].Id);
+                            }
+
+                            query = bc.Emprestimos.Where(e => LivrosIds.Contains(e.LivroId));
+                            var debug = query.ToList();
+                        break;
+
+                        default:
+                            query = bc.Emprestimos;
+                        break;
+                    }
+                }
+                else
+                {
+                    // caso filtro não tenha sido informado
+                    query = bc.Emprestimos;
+                }
+                
+                List<Emprestimo> ListaConsulta = query.OrderByDescending(e => e.DataEmprestimo). ToList();
+
+                for (int i = 0; i < ListaConsulta.Count; i++)
+                {
+                    ListaConsulta[i].Livro = bc.Livros.Find(ListaConsulta[i].LivroId);
+                } 
+                
+                return ListaConsulta;
+            } 
+        }
+        
         public Emprestimo ObterPorId(int id)
         {
             using(BibliotecaContext bc = new BibliotecaContext())
             {
+                
                 return bc.Emprestimos.Find(id);
             }
         }

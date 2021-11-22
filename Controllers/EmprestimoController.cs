@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Linq;
 
 namespace Biblioteca.Controllers
 {
@@ -15,7 +16,7 @@ namespace Biblioteca.Controllers
             EmprestimoService emprestimoService = new EmprestimoService();
 
             CadEmprestimoViewModel cadModel = new CadEmprestimoViewModel();
-            cadModel.Livros = livroService.ListarTodos();
+            cadModel.Livros = livroService.ListarDisponiveis();
             return View(cadModel);
         }
 
@@ -37,6 +38,7 @@ namespace Biblioteca.Controllers
 
         public IActionResult Listagem(string tipoFiltro, string filtro)
         {
+            Autenticacao.CheckLogin(this);
             FiltrosEmprestimos objFiltro = null;
             if(!string.IsNullOrEmpty(filtro))
             {
@@ -44,12 +46,20 @@ namespace Biblioteca.Controllers
                 objFiltro.Filtro = filtro;
                 objFiltro.TipoFiltro = tipoFiltro;
             }
+
+            if(tipoFiltro == "")
+            {
+                Console.WriteLine("Não foi encontrado nenhum registro!");
+            }
+
             EmprestimoService emprestimoService = new EmprestimoService();
-            return View(emprestimoService.ListarTodos(objFiltro));
+            return View (emprestimoService.ListarTodos(objFiltro));
+            
         }
 
         public IActionResult Edicao(int id)
         {
+            Autenticacao.CheckLogin(this);
             LivroService livroService = new LivroService();
             EmprestimoService em = new EmprestimoService();
             Emprestimo e = em.ObterPorId(id);
